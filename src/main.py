@@ -1,9 +1,14 @@
 """
 🌐 BlackRoad AI - Unified API Gateway
 Routes requests to appropriate AI models across cluster
+
+All requests mentioning @copilot, @lucidia, @blackboxprogramming, @ollama,
+or @blackroad are routed directly to local Ollama nodes — no external
+providers involved.
 """
 
 import os
+import re
 import random
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,6 +16,25 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 import httpx
 from enum import Enum
+
+# Mentions that force Ollama routing — all served from local hardware
+OLLAMA_TRIGGER_MENTIONS = {
+    "@copilot",
+    "@lucidia",
+    "@blackboxprogramming",
+    "@ollama",
+    "@blackroad",
+}
+
+
+def _extract_mentions(message: str) -> set:
+    """Return lower-cased @mentions found in *message* (word-boundary safe)."""
+    return {m.lower() for m in re.findall(r"(?<!\w)@\w+", message)}
+
+
+def _should_force_ollama(message: str) -> bool:
+    """Return True when the message contains any Ollama-trigger mention."""
+    return bool(_extract_mentions(message) & OLLAMA_TRIGGER_MENTIONS)
 
 
 class ModelType(str, Enum):
@@ -142,12 +166,19 @@ async def chat(request: ChatRequest):
     - 🧠 [MEMORY] integration
     - ⚡ Action execution
     - 🎨 Emoji enhancement
+    - 🖥️  @mention routing — @copilot/@lucidia/@blackboxprogramming/@ollama
+          all go straight to local Ollama; no external providers
     """
     import time
     start_time = time.time()
 
+    # Honour @mention overrides: any trigger mention forces local Ollama
+    effective_model = request.model
+    if _should_force_ollama(request.message):
+        effective_model = ModelType.OLLAMA
+
     # Select node
-    node = select_node(request.model, request.prefer_node)
+    node = select_node(effective_model, request.prefer_node)
 
     if not node:
         raise HTTPException(
@@ -194,11 +225,12 @@ def select_node(model_type: ModelType, prefer_node: Optional[str] = None) -> Opt
     2. Filter healthy nodes
     3. Prefer specific node if requested
     4. Select least loaded node
+
+    AUTO defaults to Ollama so all traffic stays on local hardware.
     """
-    # Get nodes for requested model type
+    # Default AUTO → Ollama (local hardware, no external providers)
     if model_type == ModelType.AUTO:
-        # Default to Qwen for AUTO
-        model_type = ModelType.QWEN
+        model_type = ModelType.OLLAMA
 
     candidates = [
         node for node in CLUSTER_NODES
