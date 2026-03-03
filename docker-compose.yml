@@ -13,6 +13,14 @@ services:
       - /Users/alexa:/host-home:ro
     environment:
       - PYTHONUNBUFFERED=1
+      # Set BLACKROAD_API_KEYS to a comma-separated list of API keys.
+      # Leave empty to run in open/unauthenticated mode (not recommended in production).
+      - BLACKROAD_API_KEYS=${BLACKROAD_API_KEYS:-}
+      # Override node IPs with Tailscale addresses (100.x.x.x) when using the mesh network.
+      - LUCIDIA_IP=${LUCIDIA_IP:-192.168.4.38}
+      - ARIA_IP=${ARIA_IP:-192.168.4.64}
+      - ALICE_IP=${ALICE_IP:-192.168.4.49}
+      - OCTAVIA_IP=${OCTAVIA_IP:-192.168.4.74}
     restart: unless-stopped
     labels:
       - "com.blackroad.service=api-gateway"

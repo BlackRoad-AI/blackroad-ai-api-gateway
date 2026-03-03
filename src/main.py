@@ -1,17 +1,76 @@
 """
 🌐 BlackRoad AI - Unified API Gateway
-Routes requests to appropriate AI models across cluster
+Routes requests to appropriate AI models across cluster.
+
+Vendor-compatible API shims let any OpenAI or Anthropic client
+point to this gateway just by changing their base URL.
+OAuth2 Bearer token (API key) authentication protects all endpoints.
 """
 
 import os
 import random
-from fastapi import FastAPI, HTTPException, Depends
+import secrets
+import time
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 import httpx
 from enum import Enum
 
+
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+# API keys are loaded from the environment.  Multiple keys may be provided as
+# a comma-separated list in BLACKROAD_API_KEYS.  When no keys are configured
+# the gateway runs in open mode (useful during initial local setup).
+_API_KEYS: set[str] = set(
+    k.strip()
+    for k in os.getenv("BLACKROAD_API_KEYS", "").split(",")
+    if k.strip()
+)
+
+
+def _require_auth(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(_bearer_scheme),
+) -> str:
+    """Validate Bearer token (OAuth2 API key).
+
+    Returns the validated token so downstream handlers can log/trace it.
+    Raises HTTP 401 when authentication fails.
+    """
+    if not _API_KEYS:
+        # No keys configured — open mode, skip auth
+        return "open"
+
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=401,
+            detail="Bearer token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Constant-time comparison to prevent timing attacks
+    token = credentials.credentials
+    for key in _API_KEYS:
+        if secrets.compare_digest(token, key):
+            return token
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid API key",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Data models — native BlackRoad API
+# ---------------------------------------------------------------------------
 
 class ModelType(str, Enum):
     """Available model types"""
@@ -53,23 +112,78 @@ class ClusterNode(BaseModel):
     load: int = 0
 
 
+# ---------------------------------------------------------------------------
 # Cluster configuration
+# Node IPs can be overridden with env vars to support Tailscale addresses.
+# Example: LUCIDIA_IP=100.x.x.x ARIA_IP=100.x.x.y ...
+# ---------------------------------------------------------------------------
+
 CLUSTER_NODES = [
-    ClusterNode(name="lucidia", ip="192.168.4.38", port=8000, model_type="qwen"),
-    ClusterNode(name="lucidia-ollama", ip="192.168.4.38", port=8001, model_type="ollama"),
-    ClusterNode(name="aria", ip="192.168.4.64", port=8000, model_type="qwen"),
-    ClusterNode(name="aria-ollama", ip="192.168.4.64", port=8001, model_type="ollama"),
-    ClusterNode(name="alice", ip="192.168.4.49", port=8000, model_type="qwen"),
-    ClusterNode(name="alice-ollama", ip="192.168.4.49", port=8001, model_type="ollama"),
-    ClusterNode(name="octavia", ip="192.168.4.74", port=8000, model_type="qwen"),
-    ClusterNode(name="octavia-ollama", ip="192.168.4.74", port=8001, model_type="ollama"),
+    ClusterNode(
+        name="lucidia",
+        ip=os.getenv("LUCIDIA_IP", "192.168.4.38"),
+        port=int(os.getenv("LUCIDIA_QWEN_PORT", "8000")),
+        model_type="qwen",
+    ),
+    ClusterNode(
+        name="lucidia-ollama",
+        ip=os.getenv("LUCIDIA_IP", "192.168.4.38"),
+        port=int(os.getenv("LUCIDIA_OLLAMA_PORT", "8001")),
+        model_type="ollama",
+    ),
+    ClusterNode(
+        name="aria",
+        ip=os.getenv("ARIA_IP", "192.168.4.64"),
+        port=int(os.getenv("ARIA_QWEN_PORT", "8000")),
+        model_type="qwen",
+    ),
+    ClusterNode(
+        name="aria-ollama",
+        ip=os.getenv("ARIA_IP", "192.168.4.64"),
+        port=int(os.getenv("ARIA_OLLAMA_PORT", "8001")),
+        model_type="ollama",
+    ),
+    ClusterNode(
+        name="alice",
+        ip=os.getenv("ALICE_IP", "192.168.4.49"),
+        port=int(os.getenv("ALICE_QWEN_PORT", "8000")),
+        model_type="qwen",
+    ),
+    ClusterNode(
+        name="alice-ollama",
+        ip=os.getenv("ALICE_IP", "192.168.4.49"),
+        port=int(os.getenv("ALICE_OLLAMA_PORT", "8001")),
+        model_type="ollama",
+    ),
+    ClusterNode(
+        name="octavia",
+        ip=os.getenv("OCTAVIA_IP", "192.168.4.74"),
+        port=int(os.getenv("OCTAVIA_QWEN_PORT", "8000")),
+        model_type="qwen",
+    ),
+    ClusterNode(
+        name="octavia-ollama",
+        ip=os.getenv("OCTAVIA_IP", "192.168.4.74"),
+        port=int(os.getenv("OCTAVIA_OLLAMA_PORT", "8001")),
+        model_type="ollama",
+    ),
 ]
 
 
+# ---------------------------------------------------------------------------
+# FastAPI app
+# ---------------------------------------------------------------------------
+
 app = FastAPI(
     title="BlackRoad AI Gateway",
-    description="Unified API for all BlackRoad AI models",
-    version="1.0.0"
+    description=(
+        "Unified API for all BlackRoad AI models. "
+        "Exposes OpenAI-compatible (/v1/chat/completions) and "
+        "Anthropic-compatible (/v1/messages) endpoints so any existing "
+        "client can be redirected to this gateway by changing only its "
+        "base URL."
+    ),
+    version="2.0.0",
 )
 
 # CORS
@@ -86,20 +200,27 @@ app.add_middleware(
 async def root():
     return {
         "service": "BlackRoad AI Gateway",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "online",
         "cluster_nodes": len(CLUSTER_NODES),
         "models": ["qwen", "deepseek", "ollama"],
-        "emoji": "🖤🛣️"
+        "vendor_compatible_apis": ["/v1/chat/completions (OpenAI)", "/v1/messages (Anthropic)"],
+        "emoji": "🖤🛣️",
     }
 
 
 @app.get("/health")
 async def health():
-    """Health check with cluster status"""
+    """Health check with cluster status (no auth required for monitoring)"""
     healthy_nodes = [node for node in CLUSTER_NODES if node.healthy]
+    if len(healthy_nodes) == 0:
+        status = "unhealthy"
+    elif len(healthy_nodes) < len(CLUSTER_NODES):
+        status = "degraded"
+    else:
+        status = "healthy"
     return {
-        "status": "healthy" if len(healthy_nodes) > 0 else "degraded",
+        "status": status,
         "total_nodes": len(CLUSTER_NODES),
         "healthy_nodes": len(healthy_nodes),
         "nodes": [
@@ -107,17 +228,17 @@ async def health():
                 "name": node.name,
                 "model": node.model_type,
                 "healthy": node.healthy,
-                "load": node.load
+                "load": node.load,
             }
             for node in CLUSTER_NODES
-        ]
+        ],
     }
 
 
 @app.get("/models")
-async def list_models():
+async def list_models(_token: str = Depends(_require_auth)):
     """List all available models across cluster"""
-    models = {}
+    models: Dict[str, List[Dict]] = {}
     for node in CLUSTER_NODES:
         if node.healthy:
             model_type = node.model_type
@@ -125,13 +246,13 @@ async def list_models():
                 models[model_type] = []
             models[model_type].append({
                 "node": node.name,
-                "endpoint": f"http://{node.ip}:{node.port}"
+                "endpoint": f"http://{node.ip}:{node.port}",
             })
     return models
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, _token: str = Depends(_require_auth)):
     """
     Chat with AI models via intelligent routing
 
@@ -143,7 +264,6 @@ async def chat(request: ChatRequest):
     - ⚡ Action execution
     - 🎨 Emoji enhancement
     """
-    import time
     start_time = time.time()
 
     # Select node
@@ -152,26 +272,26 @@ async def chat(request: ChatRequest):
     if not node:
         raise HTTPException(
             status_code=503,
-            detail="No healthy nodes available for requested model"
+            detail="No healthy nodes available for requested model",
         )
 
     # Route to appropriate endpoint based on model type
     try:
         if node.model_type == "ollama":
-            response = await route_to_ollama(node, request)
+            result = await route_to_ollama(node, request)
         else:
-            response = await route_to_direct_model(node, request)
+            result = await route_to_direct_model(node, request)
 
         latency_ms = int((time.time() - start_time) * 1000)
 
         return ChatResponse(
-            response=response["response"],
-            model_used=response.get("model", node.model_type),
+            response=result["response"],
+            model_used=result.get("model", node.model_type),
             node_used=node.name,
-            memory_context_used=response.get("memory_context_used", False),
-            emoji_enhanced=response.get("emoji_enhanced", True),
-            actions_executed=response.get("actions_executed", []),
-            latency_ms=latency_ms
+            memory_context_used=result.get("memory_context_used", False),
+            emoji_enhanced=result.get("emoji_enhanced", True),
+            actions_executed=result.get("actions_executed", []),
+            latency_ms=latency_ms,
         )
 
     except httpx.ConnectError:
@@ -179,10 +299,220 @@ async def chat(request: ChatRequest):
         node.healthy = False
         raise HTTPException(
             status_code=503,
-            detail=f"Node {node.name} is unreachable. Try again for automatic failover."
+            detail=f"Node {node.name} is unreachable. Try again for automatic failover.",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# OpenAI-compatible API  (/v1/...)
+# Clients that currently call api.openai.com can point to this gateway by
+# setting OPENAI_API_BASE=http://<gateway>:7000/v1 and using any API key.
+# ---------------------------------------------------------------------------
+
+class _OAIMessage(BaseModel):
+    role: str
+    content: str
+
+
+class _OAIChatRequest(BaseModel):
+    model: str = "blackroad-auto"
+    messages: List[_OAIMessage]
+    max_tokens: Optional[int] = 512
+    temperature: Optional[float] = 0.7
+    stream: Optional[bool] = False
+
+
+@app.get("/v1/models")
+async def oai_list_models(_token: str = Depends(_require_auth)):
+    """OpenAI-compatible model list"""
+    model_ids = [
+        "blackroad-auto",
+        "blackroad-qwen",
+        "blackroad-ollama",
+        "blackroad-deepseek",
+    ]
+    return {
+        "object": "list",
+        "data": [
+            {"id": m, "object": "model", "owned_by": "blackroad", "created": 0}
+            for m in model_ids
+        ],
+    }
+
+
+@app.post("/v1/chat/completions")
+async def oai_chat_completions(
+    request: _OAIChatRequest,
+    _token: str = Depends(_require_auth),
+):
+    """OpenAI ChatCompletion-compatible endpoint.
+
+    Accepts the standard OpenAI request format and translates it into the
+    BlackRoad internal routing layer.  Returns a response shaped like the
+    OpenAI ChatCompletion object so existing clients work without changes.
+    """
+    # Map OpenAI model name to internal model type
+    model_map = {
+        "blackroad-qwen": ModelType.QWEN,
+        "blackroad-deepseek": ModelType.DEEPSEEK,
+        "blackroad-ollama": ModelType.OLLAMA,
+    }
+    internal_model = model_map.get(request.model, ModelType.AUTO)
+
+    # Flatten messages into a single prompt (last user message as primary)
+    user_messages = [m.content for m in request.messages if m.role == "user"]
+    prompt = user_messages[-1] if user_messages else ""
+
+    # Build a system prefix from any system messages
+    system_parts = [m.content for m in request.messages if m.role == "system"]
+    if system_parts:
+        prompt = system_parts[-1] + "\n\n" + prompt
+
+    internal_req = ChatRequest(
+        message=prompt,
+        model=internal_model,
+        max_tokens=request.max_tokens or 512,
+        temperature=request.temperature if request.temperature is not None else 0.7,
+    )
+
+    start_time = time.time()
+    node = select_node(internal_model)
+    if not node:
+        raise HTTPException(status_code=503, detail="No healthy nodes available")
+
+    try:
+        if node.model_type == "ollama":
+            result = await route_to_ollama(node, internal_req)
+        else:
+            result = await route_to_direct_model(node, internal_req)
+    except httpx.ConnectError:
+        node.healthy = False
+        raise HTTPException(status_code=503, detail=f"Node {node.name} unreachable")
+
+    response_text = result.get("response", "")
+    latency_ms = int((time.time() - start_time) * 1000)
+
+    prompt_tokens = prompt.split()
+    completion_tokens = response_text.split()
+    return {
+        "id": f"chatcmpl-{secrets.token_hex(8)}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": request.model,
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": response_text},
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {
+            "prompt_tokens": len(prompt_tokens),
+            "completion_tokens": len(completion_tokens),
+            "total_tokens": len(prompt_tokens) + len(completion_tokens),
+        },
+        "_blackroad": {"node_used": node.name, "latency_ms": latency_ms},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Anthropic-compatible API  (/v1/messages)
+# Clients that currently call api.anthropic.com can point to this gateway by
+# setting ANTHROPIC_BASE_URL=http://<gateway>:7000 and using any API key.
+# ---------------------------------------------------------------------------
+
+class _AnthropicContentBlock(BaseModel):
+    type: str = "text"
+    text: str
+
+
+class _AnthropicMessage(BaseModel):
+    role: str
+    content: Any  # str or list of content blocks
+
+
+class _AnthropicRequest(BaseModel):
+    model: str = "blackroad-auto"
+    messages: List[_AnthropicMessage]
+    system: Optional[str] = None
+    max_tokens: int = 512
+    temperature: Optional[float] = 0.7
+
+
+def _extract_text(content: Any) -> str:
+    """Extract plain text from Anthropic message content (str or block list)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return " ".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+        )
+    return str(content)
+
+
+@app.post("/v1/messages")
+async def anthropic_messages(
+    request: _AnthropicRequest,
+    _token: str = Depends(_require_auth),
+):
+    """Anthropic Messages API-compatible endpoint.
+
+    Accepts the standard Anthropic /v1/messages request format and translates
+    it into the BlackRoad routing layer.  Returns a response shaped like the
+    Anthropic Messages object so existing clients work without changes.
+    """
+    # Build prompt from messages
+    user_parts = [
+        _extract_text(m.content)
+        for m in request.messages
+        if m.role == "user"
+    ]
+    prompt = user_parts[-1] if user_parts else ""
+    if request.system:
+        prompt = request.system + "\n\n" + prompt
+
+    internal_req = ChatRequest(
+        message=prompt,
+        model=ModelType.AUTO,
+        max_tokens=request.max_tokens,
+        temperature=request.temperature if request.temperature is not None else 0.7,
+    )
+
+    start_time = time.time()
+    node = select_node(ModelType.AUTO)
+    if not node:
+        raise HTTPException(status_code=503, detail="No healthy nodes available")
+
+    try:
+        if node.model_type == "ollama":
+            result = await route_to_ollama(node, internal_req)
+        else:
+            result = await route_to_direct_model(node, internal_req)
+    except httpx.ConnectError:
+        node.healthy = False
+        raise HTTPException(status_code=503, detail=f"Node {node.name} unreachable")
+
+    response_text = result.get("response", "")
+    latency_ms = int((time.time() - start_time) * 1000)
+
+    input_tokens = prompt.split()
+    output_tokens = response_text.split()
+    return {
+        "id": f"msg_{secrets.token_hex(8)}",
+        "type": "message",
+        "role": "assistant",
+        "content": [{"type": "text", "text": response_text}],
+        "model": request.model,
+        "stop_reason": "end_turn",
+        "usage": {
+            "input_tokens": len(input_tokens),
+            "output_tokens": len(output_tokens),
+        },
+        "_blackroad": {"node_used": node.name, "latency_ms": latency_ms},
+    }
 
 
 def select_node(model_type: ModelType, prefer_node: Optional[str] = None) -> Optional[ClusterNode]:
@@ -257,7 +587,7 @@ async def route_to_direct_model(node: ClusterNode, request: ChatRequest) -> Dict
 
 
 @app.post("/broadcast")
-async def broadcast_to_all_nodes(message: str):
+async def broadcast_to_all_nodes(message: str, _token: str = Depends(_require_auth)):
     """
     Broadcast a message to all nodes via [MEMORY] system
     Useful for coordination between models
