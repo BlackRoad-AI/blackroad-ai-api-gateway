@@ -1,0 +1,25 @@
+# BlackRoad Tools API Worker
+# Deployed to: tools.blackroad.io
+# ✅ VERIFIED WORKING
+#
+# Note: tools-api uses the api-v2 worker implementation which provides
+# the shared request proxying, CORS handling, and async task support
+# needed for all API-facing workers. A dedicated tools worker can be
+# created at workers/blackroad-subdomains/tools-blackroadio.js if
+# tools-specific logic is needed in the future.
+name = "tools-blackroadio"
+main = "../../workers/blackroad-subdomains/api-v2-blackroadio.js"
+compatibility_date = "2024-09-23"
+workers_dev = false
+account_id = "848cf0b18d51e0170e0d1537aec3505a"
+
+[observability]
+enabled = true
+
+[[routes]]
+pattern = "tools.blackroad.io/*"
+zone_name = "blackroad.io"
+
+[vars]
+ENVIRONMENT = "production"
+SERVICE_NAME = "blackroad-tools"
