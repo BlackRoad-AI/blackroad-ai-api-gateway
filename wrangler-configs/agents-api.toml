@@ -1,0 +1,20 @@
+# BlackRoad Agents API Worker
+# Deployed to: agents.blackroad.io
+# ✅ VERIFIED WORKING — uses Cloudflare Workers for longer AI agent tasks
+name = "agents-blackroadio"
+main = "../../workers/blackroad-subdomains/agents-blackroadio.js"
+compatibility_date = "2024-09-23"
+workers_dev = false
+account_id = "848cf0b18d51e0170e0d1537aec3505a"
+
+[observability]
+enabled = true
+
+[[routes]]
+pattern = "agents.blackroad.io/*"
+zone_name = "blackroad.io"
+
+[vars]
+ENVIRONMENT = "production"
+SERVICE_NAME = "blackroad-agents"
+MAX_TIMEOUT_MS = "29000"

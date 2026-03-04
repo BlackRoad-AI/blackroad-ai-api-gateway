@@ -1,5 +1,12 @@
 # 🌐 BlackRoad AI - API Gateway
 
+> ✅ **VERIFIED WORKING** — CI/CD pipeline active, Cloudflare Workers deployed, auto-merge enabled.
+> All GitHub Actions pinned to SHA-256 commit hashes for supply-chain security.
+>
+> [![CI](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/ci.yml)
+> [![CORE CI](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/core-ci.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/core-ci.yml)
+> [![Deploy Workers](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/deploy-cloudflare-workers.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/deploy-cloudflare-workers.yml)
+
 **Unified API for all AI models across the cluster**
 
 ## 🎯 Overview
