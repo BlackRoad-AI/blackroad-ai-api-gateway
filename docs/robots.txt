@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://blackroad-ai.github.io/blackroad-ai-api-gateway/sitemap.xml
