@@ -1,25 +1,33 @@
-# 🌐 BlackRoad AI - API Gateway
+# 🖤 BlackRoad OS — Your AI. Your Hardware. Your Rules.
 
-> ✅ **VERIFIED WORKING** — CI/CD pipeline active, Cloudflare Workers deployed, auto-merge enabled.
-> All GitHub Actions pinned to SHA-256 commit hashes for supply-chain security.
->
+## 👆 Just Click a Link
+
+**No terminal. No setup. No jargon. Just open a portal and see it work.**
+
+| Portal | What it does |
+|--------|-------------|
+| 🚀 **[Launch BlackRoad OS](https://os.blackroad.io)** | An entire AI OS — in your browser. Talk to it. Watch it work. |
+| 🌐 **[BlackRoad.io](https://blackroad.io)** | The main site. Start here. |
+| 🤖 **[3D AI Models](https://products.blackroad.io)** | Meet Lucidia, Aria & the crew — interactive 3D. |
+| 🌍 **[Lucidia AI](https://lucidia.earth)** | Our flagship AI. She remembers you. |
+| ⛓️ **[RoadChain](https://roadchain.io)** | AI infrastructure on-chain. |
+| 📖 **[Documentation](https://docs.blackroad.io)** | Plain-English guides. No jargon. |
+| 💚 **[System Status](https://status.blackroad.io)** | Is everything online? Check here. |
+| 🗂️ **[Portal Hub](https://blackroad-ai.github.io/blackroad-ai-api-gateway/)** | All portals in one place. |
+
+---
+
 > [![CI](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/ci.yml)
 > [![CORE CI](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/core-ci.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/core-ci.yml)
 > [![Deploy Workers](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/deploy-cloudflare-workers.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/deploy-cloudflare-workers.yml)
 
-**Unified API for all AI models across the cluster**
+---
 
-## 🎯 Overview
+## 🏗️ What is this repo?
 
-The API Gateway provides a single endpoint for accessing all BlackRoad AI models with:
-- 🎯 **Intelligent Routing** - Auto-select best model
-- ⚖️ **Load Balancing** - Distribute across nodes
-- 🔄 **Automatic Failover** - Health checks & retries
-- 🧠 **[MEMORY] Integration** - Unified context
-- 🌐 **Cluster Aware** - Manages 8+ nodes
-- ⚡ **Low Latency** - Sub-second routing
+This is the **API Gateway** — the backend that routes traffic to all BlackRoad AI models. You don't need to touch this to use BlackRoad. [Just click a portal above.](#-just-click-a-link)
 
-## 🏗️ Architecture
+If you're a developer and want to understand the architecture:
 
 ```
                     ┌─────────────────────────┐
