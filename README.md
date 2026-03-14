@@ -1,12 +1,5 @@
 # 🌐 BlackRoad AI - API Gateway
 
-> ✅ **VERIFIED WORKING** — CI/CD pipeline active, Cloudflare Workers deployed, auto-merge enabled.
-> All GitHub Actions pinned to SHA-256 commit hashes for supply-chain security.
->
-> [![CI](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/ci.yml)
-> [![CORE CI](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/core-ci.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/core-ci.yml)
-> [![Deploy Workers](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/deploy-cloudflare-workers.yml/badge.svg)](https://github.com/BlackRoad-AI/blackroad-ai-api-gateway/actions/workflows/deploy-cloudflare-workers.yml)
-
 **Unified API for all AI models across the cluster**
 
 ## 🎯 Overview
@@ -269,40 +262,17 @@ Need help? Mention **@blackroad** in any issue or PR to summon our intelligent a
 - **Total Repos**: 144+ across the empire
 - **AI Agents**: 30,000+ available for assistance
 
-### 🗂️ Infrastructure Directory
-
-> Full index of all BlackRoad organizations, domains, and infrastructure:  
-> **[blackroad-ai.github.io/blackroad-ai-api-gateway/](https://blackroad-ai.github.io/blackroad-ai-api-gateway/)**
-
 ### 🔗 Links
 
 - [BlackRoad OS](https://blackroad.io)
 - [Documentation](https://docs.blackroad.io)
 - [Status](https://status.blackroad.io)
-- [GitHub Enterprise](https://github.com/enterprises/blackroad-os)
-- [BlackRoad AI](https://github.com/BlackRoad-AI)
-- [BlackRoad OS Org](https://github.com/BlackRoad-OS)
-- [BlackRoad Cloud](https://github.com/BlackRoad-Cloud)
-- [BlackRoad Security](https://github.com/BlackRoad-Security)
-- [BlackRoad Labs](https://github.com/BlackRoad-Labs)
-- [BlackRoad Foundation](https://github.com/BlackRoad-Foundation)
-- [BlackRoad Ventures](https://github.com/BlackRoad-Ventures)
-- [BlackRoad Studio](https://github.com/BlackRoad-Studio)
-- [BlackRoad Media](https://github.com/BlackRoad-Media)
-- [BlackRoad Education](https://github.com/BlackRoad-Education)
-- [BlackRoad Gov](https://github.com/BlackRoad-Gov)
-- [BlackRoad Hardware](https://github.com/BlackRoad-Hardware)
-- [BlackRoad Interactive](https://github.com/BlackRoad-Interactive)
-- [BlackRoad Archive](https://github.com/BlackRoad-Archive)
-- [Blackbox Enterprises](https://github.com/Blackbox-Enterprises)
-- [Lucidia AI](https://lucidia.earth)
-- [RoadChain](https://roadchain.io)
-- [BlackRoad Quantum](https://blackroadquantum.com)
+- [GitHub Organizations](https://github.com/BlackRoad-OS)
 
 ### 📧 Contact
 
 - Email: blackroad.systems@gmail.com
-- Primary: amundsonalexa@gmail.com
+- Primary: blackroad@gmail.com
 
 ### ⚖️ License
 
