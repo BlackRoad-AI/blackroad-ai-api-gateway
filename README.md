@@ -1,3 +1,11 @@
+# blackroad-ai-api-gateway
+
+> Unified API gateway for all BlackRoad AI models with [MEMORY] integration
+
+Part of the [BlackRoad OS](https://blackroad.io) ecosystem — [BlackRoad-AI](https://github.com/BlackRoad-AI)
+
+---
+
 # 🌐 BlackRoad AI - API Gateway
 
 **Unified API for all AI models across the cluster**
